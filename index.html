@@ -577,7 +577,7 @@
 (function(){
   "use strict";
  
-  var API_URL = "http://127.0.0.1:8001";
+  var API_URL = "http://127.0.0.1:8000";
   var EXPENSE_CATS = ["Moradia","Alimentação","Transporte","Lazer","Saúde","Educação","Outros"];
   var INCOME_CATS = ["Salário","Freelance","Investimentos","Outros"];
   var ACCOUNTS = ["Conta Corrente","Poupança","Cartão de Crédito"];
@@ -631,8 +631,12 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name, email: email, password: password })
     }).then(function(res) {
-      if (!res.ok) throw new Error("Erro ao cadastrar usuário.");
-      return res.json();
+      return res.json().then(function(data) {
+        if (!res.ok) {
+          throw new Error(data.detail || "Erro ao cadastrar usuário.");
+        }
+        return data;
+      });
     });
   }
   function changePasswordAPI(currentPassword, newPassword) {
@@ -842,13 +846,15 @@
         });
       } else {
         var name = document.getElementById('authName').value;
-        registerAPI(name, email, password).then(function() {
-          return loginAPI(email, password);
-        }).then(function(data) {
+        registerAPI(name, email, password).then(function(data) {
+          // O cadastro agora já retorna o JWT, então não é necessário
+          // fazer um segundo login.
           state.token = data.access_token;
           state.user = data.user;
+
           localStorage.setItem('v2_token', data.access_token);
           localStorage.setItem('v2_user', JSON.stringify(data.user));
+
           showView('app');
         }).catch(function(err) {
           errorEl.textContent = err.message;
